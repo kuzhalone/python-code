@@ -1,4 +1,3 @@
-#Cost Report
 def COST_USAGE():
         start = input("Enter the start duration in the format YYYY-MM-DD: ")
         end = input("Enter the end duration in the format YYYY-MM-DD: ")
@@ -52,62 +51,57 @@ def COST_USAGE():
             ],
 
         )
+        print("SERVICE REPORT")
+        for j in range(100):
+            try:
+                print(response1["ResultsByTime"][0]["Groups"][j]["Keys"],"Amount:",response1["ResultsByTime"][0]["Groups"][j]["Metrics"]["UnblendedCost"]["Amount"])
+            except IndexError:
+                break
+        print("INSTANCE REPORT")
+        for m in range(100):
+            try:
+                print(response2["ResultsByTime"][0]["Groups"][m]["Keys"],"Amount:",response2["ResultsByTime"][0]["Groups"][m]["Metrics"]["UnblendedCost"]["Amount"])
+            except IndexError:
+                break
+            
+        print("INSTANCE NAME REPORT")
+        for n in range(100):
+            try:
+                print(response3["ResultsByTime"][0]["Groups"][n]["Keys"],"Amount:",response3["ResultsByTime"][0]["Groups"][n]["Metrics"]["UnblendedCost"]["Amount"])
+            except IndexError:
+                break
+                
 
         # CONVERTING THE OUTPUT TO CSV AND DOWNLOADING IT FOR SERVICE,INSTANCE TYPE,INSTANCE NAME
-        total = 0
-        tl = []
-        print("TimePeriod:", response1["ResultsByTime"][0]["TimePeriod"])
-        for i in range(100):
+        
+        K = []
+        for i in range(1000):
             try:
-                t = {"Service": "s", "Amount": 1}
-                t["Service"] = response1["ResultsByTime"][0]["Groups"][i]["Keys"]
-                t["Amount"] = response1["ResultsByTime"][0]["Groups"][i]["Metrics"]["UnblendedCost"]["Amount"]
-                tl.append(t)
 
-                total += float(response1["ResultsByTime"][0]["Groups"][i]["Metrics"]["UnblendedCost"]["Amount"])
+                P = {'SERVICE': 's', 'AMOUNT': 1, 'INSTANCE': 's',
+                     "AMOUNT1": 1, "INSTANCE NAME": 's', "AMOUNT2": 1,}
+                P["SERVICE"] = response1["ResultsByTime"][0]["Groups"][i]["Keys"]
+                P["AMOUNT"] = response1["ResultsByTime"][0]["Groups"][i]["Metrics"]["UnblendedCost"]["Amount"]
+                P["INSTANCE"] = response2["ResultsByTime"][0]["Groups"][i]["Keys"]
+                P["AMOUNT1"] = response2["ResultsByTime"][0]["Groups"][i]["Metrics"]["UnblendedCost"][
+                    "Amount"]
+                P["INSTANCE NAME"] = response3["ResultsByTime"][0]["Groups"][i]["Keys"]
+                P["AMOUNT2"] = response3["ResultsByTime"][0]["Groups"][i]["Metrics"]["UnblendedCost"][
+                    "Amount"]
+                K.append(P)
             except IndexError:
                 break
-        print(total)
-        tfl = []
-        fields = ['Service', 'Amount', '', 'Instance', 'Amount1', " ", "Instance_Name", "Amount2"]
+                
 
-        filename = input("Enter the file_name.csv: ")
+        
+        fields = ["SERVICE","AMOUNT","INSTANCE","AMOUNT1","INSTANCE NAME","AMOUNT2"]
+        filename = input("Enter the file name with extension as csv: ")
+        
         with open(filename, 'w') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fields)
             writer.writeheader()
-            writer.writerows(tl)
-
-        for i in range(100):
-            try:
-                tfd = {"Instance": "d", "Amount1": 2}
-                tfd["Instance"] = response2["ResultsByTime"][0]["Groups"][i]["Keys"]
-                tfd["Amount1"] = response2["ResultsByTime"][0]["Groups"][i]["Metrics"]["UnblendedCost"]["Amount"]
-                print(response2["ResultsByTime"][0]["Groups"][i]["Keys"], "Amount",
-                      response2["ResultsByTime"][0]["Groups"][i]["Metrics"]["UnblendedCost"]["Amount"])
-                tfl.append(tfd)
-
-
-            except IndexError:
-                break
-
-        ytl = []
-        for i in range(100):
-            try:
-                ytd = {"Instance_Name": "h", "Amount2": 3}
-                ytd["Instance_Name"] = response3["ResultsByTime"][0]["Groups"][i]["Keys"]
-                ytd["Amount2"] = response3["ResultsByTime"][0]["Groups"][i]["Metrics"]["UnblendedCost"]["Amount"]
-                print(response3["ResultsByTime"][0]["Groups"][i]["Keys"], "Amount",
-                      response3["ResultsByTime"][0]["Groups"][i]["Metrics"]["UnblendedCost"]["Amount"])
-                ytl.append(ytd)
-            except IndexError:
-                break
-
-        with open(filename, 'w') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fields)
-            writer.writeheader()
-            writer.writerows(tl)
-            writer.writerows(tfl)
-            writer.writerows(ytl)
+            writer.writerows(K)
+ 
 
 
     COST_USAGE()
