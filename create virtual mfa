@@ -1,0 +1,13 @@
+    def create_virtual_mfa():
+        us = boto3.client("iam")
+        totp = pyotp.TOTP()
+        code_1 = totp.generate_otp(totp.timecode(datetime.datetime.now() - datetime.timedelta(seconds=30)))
+        code_2 = totp.generate_otp(totp.timecode(datetime.datetime.now()))
+
+        vmfa = us.enable_mfa_device(
+            UserName='test_sneha',
+            SerialNumber='arn:aws:iam::483285932550:user/test_sneha',
+            AuthenticationCode1=code_1,
+            AuthenticationCode2=code_2
+        )
+        print(vmfa)
