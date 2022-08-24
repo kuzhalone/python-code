@@ -1,0 +1,67 @@
+us = boto3.client("iam")
+
+        def create_iam_user():
+            un = input("Enter the name of the user:")
+            us = boto3.client("iam")
+            user = us.create_user(UserName=un)
+            print("USER created", user)
+            return user
+
+        User_ = create_iam_user()
+
+        def create_iam_group():
+            gn = input("Enter the group name to which the user has to associated with:")
+            user_grp = us.create_group(GroupName=gn)
+            print("GROUP CREATED", user_grp)
+            return user_grp
+
+        def add_user_to_group(unn, gnn):
+            add = us.add_user_to_group(
+                UserName=unn,
+                GroupName=gnn
+            )
+            print("USER ADDED TO THE GROUP", add)
+
+        eiam = int(input(
+            "Press the appropriate number to proceed\n1.create a new group for the user\n2.add the user to the existing group:"))
+
+        if eiam == 1:
+            create_iam_group()
+
+        elif eiam == 2:
+            l_g = us.list_groups()
+            print("These are the list of existing groups:")
+            dict_gn = {}
+            for i in range(100):
+                try:
+                    dict_gn[i + 1] = l_g["Groups"][i]["GroupName"]
+                    print(i + 1, ":", l_g["Groups"][i]["GroupName"])
+                except IndexError:
+                    break
+            r = int(input("Press the appropriate Number of the group that you want this user to be associated with:"))
+            un_n = User_['User']["UserName"]
+            add_user_to_group(un_n, dict_gn[r])
+        def create_policy():
+            us=boto3.client("iam")
+            Pol_Name=input("Enter the name of the policy to be created:")
+            Policy={
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": "*",
+                    "Resource": "*"
+                }
+            ]
+        }
+            p_i=us.create_policy(PolicyName=Pol_Name,
+                                    PolicyDocument=json.dumps(Policy))
+            pa=p_i["Policy"]["Arn"]
+
+            def attach_policy_group():
+                G_Name=input("Enter the group Name to which the policy is to be attached with")
+                p_pg = b.attach_group_policy(GroupName=G_Name, PolicyArn=pa)
+                print(p_pg)
+
+            attach_policy_group()
+        create_policy()
