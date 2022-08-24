@@ -1,0 +1,9 @@
+    def Security_hub_Findings():
+        sa = boto3.client("securityhub")
+        response56 = sa.get_findings()
+        for mnb in range(1,100):
+            try:
+                print(mnb,"-","Title:",response56["Findings"][mnb]["Title"],"   SEVERITY:   ",response56["Findings"][mnb]["Severity"]["Label"],"   DESCRIPTION:   ",response56["Findings"][mnb]["Description"],"   REMEDIATION:   ",response56["Findings"][mnb]["Remediation"]["Recommendation"]["Text"])
+            except IndexError:
+                break
+    Security_hub_Findings()
