@@ -1,0 +1,9 @@
+    def create_sns():
+        Name_topic = input("Enter the name of the topic:")
+        yte = boto3.client("sns")
+        tc = yte.create_topic(
+            Name=Name_topic)
+        print(tc)
+        sc = yte.subscribe(TopicArn=tc["TopicArn"], Protocol="email", Endpoint="snehu.bas@gmail.com")
+        return tc["TopicArn"]
+    tp_=create_sns()
