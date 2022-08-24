@@ -1,0 +1,28 @@
+    def rotating_ak():
+        us = boto3.client('iam')
+        B = us.list_users()
+        users = {}
+        for p in range(1000):
+            try:
+                users[p + 1] = B["Users"][p]["UserName"]
+                print(p + 1, ":", B["Users"][p]["UserName"])
+
+            except IndexError:
+                break
+        nee = int(input("Press the appropriate number to continue:"))
+        username = users[nee]
+        res = us.list_access_keys(UserName=username)
+        accesskeydate = res['AccessKeyMetadata'][0]['CreateDate'].date()
+        currentdate = date.today()
+        active_days = currentdate - accesskeydate
+        teddxw = active_days.days
+        if teddxw == 90 | teddxw > 90:
+            qq = us.delete_access_key(
+                AccessKeyId=res["AccessKeyMetadata"][0]["AccessKeyId"],
+                UserName=username
+            )
+            qqwesa = us.create_access_key(
+                UserName=username)
+            print("NEW ACCESS KEY CREATED:", qqwesa)
+        else:
+            print("YOUR ACCESS KEY IS ONLY", teddxw, "DAYS OLD.")
