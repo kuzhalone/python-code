@@ -1,0 +1,669 @@
+    def create_new_instance():
+        def create_vpc():
+            ip_vpc = input("Enter the Cidrblock for the VPC:")
+            vpc = b.create_vpc(CidrBlock=ip_vpc)
+            ssn = input("Enter the name of the vpc")
+            b.create_tags(Resources=[vpc["Vpc"]["VpcId"]], Tags=[{'Key': 'Name', 'Value': ssn}])
+            print("Vpc created")
+            print(vpc)
+
+            def create_it():
+                b = boto3.client("ec2", region_name=rn)
+                v = b.create_internet_gateway()
+                it_n=input("Enter the name of the internet gateway :")
+                b.create_tags(Resources=[v['InternetGateway']['InternetGatewayId']],Tags=[{"Key":"Name","Value":it_n}])
+                print("Internet Gateway Created")
+                return v
+
+            vv = create_it()
+            client.attach_internet_gateway(InternetGatewayId=vv['InternetGateway']['InternetGatewayId'],
+                                           VpcId=vpc["Vpc"]["VpcId"])
+
+            def create_subnet():
+                subnet_ip = input("Enter the CidrBlock for your subnet:")
+                print("These are the availability zones present in this region")
+                response = client.describe_availability_zones()
+                iiu = {}
+                for ii in range(100):
+                    try:
+                        print(ii + 1, ":", response["AvailabilityZones"][ii]["ZoneName"])
+                        iiu[ii + 1] = response["AvailabilityZones"][ii]["ZoneName"]
+                    except IndexError:
+                        break
+                rru = int(input("Press the appropriate number to continue:"))
+                az = iiu[rru]
+                s = b.create_subnet(CidrBlock=subnet_ip, VpcId=vpc["Vpc"]["VpcId"],AvailabilityZone=az)
+                sssn=input("Enter the name of the subnet")
+                b.create_tags(Resources=[s["Subnet"]["SubnetId"]],Tags=[{"Key":"Name","Value":sssn}])
+                print("Subnet Created")
+                print(s)
+                return s
+
+            ss = create_subnet()
+
+            def create_rt():
+                rt_new = b.create_route_table(VpcId=vpc["Vpc"]["VpcId"])
+                print(rt_new)
+                r = b.create_route(DestinationCidrBlock="0.0.0.0/0",
+                                   GatewayId=vv['InternetGateway']['InternetGatewayId'],
+                                   RouteTableId=rt_new["RouteTable"]["RouteTableId"])
+                print(r)
+                b.associate_route_table(RouteTableId=rt_new["RouteTable"]["RouteTableId"],
+                                        SubnetId=ss["Subnet"]["SubnetId"])
+                rtn_=input("Enter the name of the route table:")
+                b.create_tags(Resources=[rt_new["RouteTable"]["RouteTableId"]],Tags=[{"Key":"Name","Value":rtn_}])
+
+            create_rt()
+            print("VPC and Subnet successfully created!!!")
+            r_list = [ss, vpc]
+            return r_list
+
+        S_p = create_vpc()
+
+        def allocate_public_ip():
+            kk = b.allocate_address(Domain="vpc")
+            Allocation_id = kk["AllocationId"]
+
+            def create_nat_gateway():
+                w = b.create_nat_gateway(SubnetId=S_p[0]["Subnet"]["SubnetId"], AllocationId=Allocation_id)
+                print("NAT Gateway created! Please wait until the NAT gateway gets started!")
+                time.sleep(60)
+                cidr = input("Enter the CidrBlock for the subnet to which the NAT gateway is to be attached:")
+                print("These are the availability zones present in this region")
+                response = client.describe_availability_zones()
+                iiu = {}
+                for ii in range(100):
+                    try:
+                        print(ii + 1, ":", response["AvailabilityZones"][ii]["ZoneName"])
+                        iiu[ii + 1] = response["AvailabilityZones"][ii]["ZoneName"]
+                    except IndexError:
+                        break
+                rru = int(input("Press the appropriate number to continue:"))
+                az_ = iiu[rru]
+
+                sn_new = b.create_subnet(CidrBlock=cidr, VpcId=S_p[1]["Vpc"]["VpcId"],AvailabilityZone=az_)
+                pn=input("Enter the name of the subnet:")
+                b.create_tags(Resources=[sn_new["Subnet"]["SubnetId"]],Tags=[{"Key":"Name","Value":pn}])
+                print("Subnet created under the same VPC", sn_new)
+                rt = b.create_route_table(VpcId=S_p[1]["Vpc"]["VpcId"])
+                r_new = b.create_route(DestinationCidrBlock="0.0.0.0/0", GatewayId=w["NatGateway"]["NatGatewayId"],
+                                       RouteTableId=rt["RouteTable"]["RouteTableId"])
+                rtn_1 = input("Enter the name of the route table:")
+                b.create_tags(Resources=[rt["RouteTable"]["RouteTableId"]], Tags=[{"Key": "Name", "Value": rtn_1}])
+                print("Route table created and NAT gateway attached to the subnet", r_new)
+                print(w)
+
+            create_nat_gateway()
+
+        print("Do you want to create a NAT gateway \n1.Yes\n2:No\n3.exit")
+        Nat_choice = int(input("press the appropriate number to continue:"))
+        if Nat_choice == 1:
+            allocate_public_ip()
+            print("Now creating Instance")
+        else:
+            print()
+            kk = b.allocate_address(Domain="vpc")
+            Allocation_id = kk["AllocationId"]
+        choiceofami = int(
+            input("Select the appropriate number to continue:\n1.Select a new AMI\n2.Select a existing AMI:"))
+        if choiceofami == 1:
+            chami = int(
+                input("Select the appropriate number to continue:\n1.Custom made ami\n2.select from the AWS console"))
+            if chami == 2:
+                os_list = {1: "Amazon Linux", 2: "ubuntu", 3: "Windows", 4: "Red Hat", 5: "SUSE Linux",
+                           6: "Debian"}
+                AL_a = {1: "Amazon Linux 2 AMI (HVM) - Kernel 5.10, SSD Volume Type",
+                        2: "Amazon Linux 2 AMI (HVM) - Kernel 4.14, SSD Volume Type"}
+                ami_a = {1: "ami-0c802847a7dd848c0", 2: "ami-07251f912d2a831a3 "}
+                AL_U = {1: "Ubuntu Server 22.04 LTS (HVM), SSD Volume Type",
+                        2: "Ubuntu Server 20.04 LTS (HVM), SSD Volume Type",
+                        3: "Ubuntu Server 18.04 LTS (HVM), SSD Volume Type"}
+                ami_u = {1: "ami-02f3416038bdb17fb", 2: "ami-0960ab670c8bb45f3", 3: "ami-00978328f54e31526"}
+                AL_R = {1: "Red Hat Enterprise Linux 8 (HVM), SSD Volume Type"}
+                ami_r = {1: "ami-092b43193629811af"}
+                AL_W = {1: "Microsoft Windows Server 2019 Base",
+                        2: "Microsoft Windows Server 2019 Base with Containers",
+                        3: "Microsoft Windows Server 2022 Base",
+                        4: "Microsoft Windows Server 2016 Base",
+                        5: "Microsoft Windows Server 2016 Base with Containers",
+                        6: "Microsoft Windows Server 2022 Base with Containers",
+                        7: "Microsoft Windows Server 2012 R2 Base"}
+                ami_w = {1: "ami-073d7de8004a80faa",
+                         2: "ami-088d5094c0da312c0",
+                         3: "ami-094a92978724fc94c",
+                         4: "ami-0b88f77318e978be0",
+                         5: "ami-002aeb26d351ddee5",
+                         6: "ami-01ff49cce5f010586",
+                         7: "ami-05e860de04e9e8d94"}
+                AL_S = {1: "SUSE Linux Enterprise Server 15 SP3 (HVM), SSD Volume Type",
+                        2: "SUSE Linux Enterprise Server 12 SP5 (HVM), SSD Volume Type"}
+                ami_s = {1: "ami-0f7cb53c916a75006", 2: "ami-0e7f3f36f3e65891a"}
+                AL_D = {1: "Debian 11 (HVM), SSD Volume Type"}
+                ami_d = {1: "ami-0c7c4e3c6b4941f0f"}
+
+                for osi in range(1, 7):
+                    osj = os_list[osi]
+                    print(osi, ":", osj)
+                o = int(input("Enter the appropriate number of the Operating System you want to opt:"))
+                os_name = os_list[o]
+                if o == 1:
+                    print("List of AMI(free tier)in", os_name, ":")
+                    for aa in range(1, 3):
+                        print(aa, ":", AL_a[aa])
+                    amik = int(input("Press the appropriate number of AMI that you want to choose:"))
+                    AMI = ami_a[amik]
+                elif o == 2:
+                    print("List of AMI(free tier)in", os_name, ":")
+                    for au in range(1, 4):
+                        print(au, ":", AL_U[au])
+                    amik = int(input("Press the appropriate number of AMI that you want to choose:"))
+                    AMI = ami_u[amik]
+                elif o == 3:
+                    print("List of AMI(free tier)in", os_name, ":")
+                    for aw in range(1, 8):
+                        print(aw, ":", AL_W[aw])
+                    amik = int(input("Press the appropriate number of AMI that you want to choose:"))
+                    AMI = ami_w[amik]
+                elif o == 4:
+                    print("List of AMI(free tier)in", os_name, ":")
+                    print(AL_R[1])
+                    amik = int(input("Press the appropriate number of AMI that you want to choose:"))
+                    AMI = ami_r[amik]
+                elif o == 5:
+                    print("List of AMI(free tier)in", os_name, ":")
+                    for asu in range(1, 3):
+                        print(asu, ":", AL_S[asu])
+                    amik = int(input("Press the appropriate number of AMI that you want to choose:"))
+                    AMI = ami_s[amik]
+                elif o == 6:
+                    print("List of AMI(free tier)in", os_name, ":")
+                    print(AL_D[1])
+                    amik = int(input("Press the appropriate number of AMI that you want to choose:"))
+                    AMI = ami_d[amik]
+
+                print("Selected OS:", os_name)
+                print("Selected AMI ID:", AMI)
+            elif chami == 1:
+                AMI = input("Enter the AMI id:")
+
+        elif choiceofami == 2:
+            ami_dict_ohio = {1: "ubuntu linux cis 20.04"}
+            a_o = {1: "ami-088b0a237ee1f2190"}
+            ami_dict_mumbai = {1: "Grafana-restore-instance", 2: "Grafana-11-03-2022",
+                               3: "Openvpn-restore-instance"}
+            a_m = {1: "ami-00ef765abde4efcfd", 2: "ami-08a5b2a4a24973d20", 3: "ami-0c2b564a84d319dc1"}
+            ami_dict_nvi = {1: "mad-test-1"}
+            a_n = {1: "ami-076847a41183343c8"}
+            ami_dict_sing = {1: "test-sk-backup"}
+            a_s = {1: "ami-0635e0b48f8771d8b"}
+            ami_dict_london = {1: "image1"}
+            a_l = {1: "ami-097cd522a8aa4c63f"}
+
+            yu = {}
+            print("List of AMI's in this region:")
+            for eir in range(1, 100):
+                try:
+                    if k == 2:
+                        print(eir, ":", ami_dict_ohio[eir])
+                        yu[eir] = ami_dict_ohio[eir]
+                    elif k == 8:
+                        print(eir, ":", ami_dict_mumbai[eir])
+                        yu[eir] = ami_dict_ohio[eir]
+                    elif k == 1:
+                        print(eir, ":", ami_dict_nvi[eir])
+                        yu[eir] = ami_dict_ohio[eir]
+                    elif k == 11:
+                        print(eir, ":", ami_dict_sing[eir])
+                        yu[eir] = ami_dict_ohio[eir]
+                    elif k == 17:
+                        print(eir, ":", ami_dict_london[eir])
+                        yu[eir] = ami_dict_ohio[eir]
+                except KeyError:
+                    break
+            amichoice = int(input("Press the appropriate number to continue:"))
+            if k == 2:
+                AMI = a_o[amichoice]
+            elif k == 8:
+                AMI = a_m[amichoice]
+            elif k == 1:
+                AMI = a_n[amichoice]
+            elif k == 11:
+                AMI = a_s[amichoice]
+            elif k == 17:
+                AMI = a_l[amichoice]
+
+            print("AMI selected:", AMI)
+
+        sn_all = b.describe_subnets()
+        for ou in range(1,100):
+            f={}
+            try:
+                for sn in sn_all['Subnets']:
+                    f[sn["SubnetId"]]= sn["Tags"][0]["Value"]
+                    print(f[ou])
+            except KeyError:
+                break
+
+        sn_all = b.describe_subnets()
+        for ou in range(1, 100):
+            f = {}
+            try:
+                for sn in sn_all['Subnets']:
+
+                    f[sn["SubnetId"]] = sn['Tags'][0]["Value"]
+            except IndexError:
+                break
+        f_key_list = list(f.keys())
+        f_value_list = list(f.values())
+        f1 = {}
+        t = 1
+        print("These are the list of subnet present:")
+        for fi in f.keys():
+            f1[t] = f[fi]
+            print(t, ":", f[fi])
+            t += 1
+        ki = input("Enter the subnet name to continue:")
+        tvar = f_value_list.index(ki)
+        S_ID = f_key_list[tvar]
+        print("The selected Subnet:",S_ID)
+        termination_d_ = int(input("Delete on Termination\n1.Enable\n2.Disable"))
+        if termination_d_ == 1:
+            t_d_ = True
+        elif termination_d_== 2:
+            t_d_ = False
+        else:
+            print("Invalid choice")
+        stop_ini=int(input("InstanceInitiatedShutdownBehavior\n1.stop\n2.terminate"))
+        if stop_ini==1:
+            s_i_="stop"
+        elif stop_ini==2:
+            s_i_="terminate"
+        else:
+            print("Invalid choice")
+        v_s_ = int(input("Enter the Volume size that you want to attach to this instance:"))
+        v_t_ = input("Enter the Volume Type:\nStandard Choices:io1,io2,gp2,sc1,st1,gp3")
+        c_inst = b.run_instances(BlockDeviceMappings=[
+        {'DeviceName': '/dev/sda1',
+            'Ebs': {
+                'DeleteOnTermination': t_d_,
+                'VolumeSize': v_s_,
+                'VolumeType': v_t_,
+            }
+        }
+    ],
+            ImageId=AMI,
+            MinCount=1,
+            MaxCount=1,
+            InstanceType=input("Enter the instance type:"),
+            IamInstanceProfile={"Name": "SSM-Role"},
+            InstanceInitiatedShutdownBehavior=s_i_,
+            NetworkInterfaces=[{'AssociatePublicIpAddress': True,'DeleteOnTermination':t_d_, 'DeviceIndex': 0, "SubnetId": S_ID}])
+        print(c_inst)
+        instanceid=c_inst["Instances"][0]["InstanceId"]
+        c_inst_name=input("Enter the name of the instance:")
+        b.create_tags(Resources=[instanceid],Tags=[{"Key":"Name","Value":c_inst_name}])
+        respo1 = b.start_instances(
+            InstanceIds=[
+                c_inst["Instances"][0]["InstanceId"]])
+        print(respo1)
+        print("Instance created!")
+        """
+        kk = b.allocate_address(Domain="vpc")
+        Allocation_id = kk["AllocationId"]
+        respo1 = b.start_instances(
+            InstanceIds=[
+                c_inst["Instances"][0]["InstanceId"]])
+        print(respo1)
+        time.sleep(120)
+        b.associate_address(AllocationId=Allocation_id, InstanceId=c_inst["Instances"][0]["InstanceId"])
+        """
+
+    def del_inst():
+        d_instances = b.describe_instances()
+        print("LIST OF INSTANCES:")
+        qf = []
+        for rrp in d_instances["Reservations"]:
+            eli = 0
+            try:
+                print(rrp["Instances"][eli])
+                qf.append(rrp["Instances"][eli]["InstanceId"])
+                eli += 1
+            except IndexError:
+                break
+        bk = 1
+        for e in qf:
+            print(bk, ":", e)
+            bk += 1
+
+        qfk = int(input("Enter the appropriate number to continue:"))
+        d_inst = qf[qfk-1]
+        b.terminate_instances(InstanceIds=[d_inst])
+        print("Termination Successfull")
+
+
+    def stop_inst():
+        s_inst=input("Enter the instance ID of the instance you want to stop:")
+        b.stop_instances(InstanceIds=[s_inst])
+        print("Instance stopped")
+
+    def create_instance():
+        choiceofami = int(
+            input("Select the appropriate number to continue:\n1.Select a new AMI\n2.Select a existing AMI:"))
+
+        if choiceofami == 1:
+            chami = int(
+                input("Select the appropriate number to continue:\n1.Custom made ami\n2.select from the AWS console"))
+            if chami == 2:
+                os_list = {1: "Amazon Linux", 2: "ubuntu", 3: "Windows", 4: "Red Hat", 5: "SUSE Linux",
+                           6: "Debian"}
+                AL_a = {1: "Amazon Linux 2 AMI (HVM) - Kernel 5.10, SSD Volume Type",
+                        2: "Amazon Linux 2 AMI (HVM) - Kernel 4.14, SSD Volume Type"}
+                ami_a = {1: "ami-0c802847a7dd848c0", 2: "ami-07251f912d2a831a3 "}
+                AL_U = {1: "Ubuntu Server 22.04 LTS (HVM), SSD Volume Type",
+                        2: "Ubuntu Server 20.04 LTS (HVM), SSD Volume Type",
+                        3: "Ubuntu Server 18.04 LTS (HVM), SSD Volume Type"}
+                ami_u = {1: "ami-02f3416038bdb17fb", 2: "ami-0960ab670c8bb45f3", 3: "ami-00978328f54e31526"}
+                AL_R = {1: "Red Hat Enterprise Linux 8 (HVM), SSD Volume Type"}
+                ami_r = {1: "ami-092b43193629811af"}
+                AL_W = {1: "Microsoft Windows Server 2019 Base",
+                        2: "Microsoft Windows Server 2019 Base with Containers",
+                        3: "Microsoft Windows Server 2022 Base",
+                        4: "Microsoft Windows Server 2016 Base",
+                        5: "Microsoft Windows Server 2016 Base with Containers",
+                        6: "Microsoft Windows Server 2022 Base with Containers",
+                        7: "Microsoft Windows Server 2012 R2 Base"}
+                ami_w = {1: "ami-073d7de8004a80faa",
+                         2: "ami-088d5094c0da312c0",
+                         3: "ami-094a92978724fc94c",
+                         4: "ami-0b88f77318e978be0",
+                         5: "ami-002aeb26d351ddee5",
+                         6: "ami-01ff49cce5f010586",
+                         7: "ami-05e860de04e9e8d94"}
+                AL_S = {1: "SUSE Linux Enterprise Server 15 SP3 (HVM), SSD Volume Type",
+                        2: "SUSE Linux Enterprise Server 12 SP5 (HVM), SSD Volume Type"}
+                ami_s = {1: "ami-0f7cb53c916a75006", 2: "ami-0e7f3f36f3e65891a"}
+                AL_D = {1: "Debian 11 (HVM), SSD Volume Type"}
+                ami_d = {1: "ami-0c7c4e3c6b4941f0f"}
+
+                for osi in range(1, 7):
+                    osj = os_list[osi]
+                    print(osi, ":", osj)
+                o = int(input("Enter the appropriate number of the Operating System you want to opt:"))
+                os_name = os_list[o]
+                if o == 1:
+                    print("List of AMI(free tier)in", os_name, ":")
+                    for aa in range(1, 3):
+                        print(aa, ":", AL_a[aa])
+                    amik = int(input("Press the appropriate number of AMI that you want to choose:"))
+                    AMI = ami_a[amik]
+                elif o == 2:
+                    print("List of AMI(free tier)in", os_name, ":")
+                    for au in range(1, 4):
+                        print(au, ":", AL_U[au])
+                    amik = int(input("Press the appropriate number of AMI that you want to choose:"))
+                    AMI = ami_u[amik]
+                elif o == 3:
+                    print("List of AMI(free tier)in", os_name, ":")
+                    for aw in range(1, 8):
+                        print(aw, ":", AL_W[aw])
+                    amik = int(input("Press the appropriate number of AMI that you want to choose:"))
+                    AMI = ami_w[amik]
+                elif o == 4:
+                    print("List of AMI(free tier)in", os_name, ":")
+                    print(AL_R[1])
+                    amik = int(input("Press the appropriate number of AMI that you want to choose:"))
+                    AMI = ami_r[amik]
+                elif o == 5:
+                    print("List of AMI(free tier)in", os_name, ":")
+                    for asu in range(1, 3):
+                        print(asu, ":", AL_S[asu])
+                    amik = int(input("Press the appropriate number of AMI that you want to choose:"))
+                    AMI = ami_s[amik]
+                elif o == 6:
+                    print("List of AMI(free tier)in", os_name, ":")
+                    print(AL_D[1])
+                    amik = int(input("Press the appropriate number of AMI that you want to choose:"))
+                    AMI = ami_d[amik]
+
+                print("Selected OS:", os_name)
+                print("Selected AMI ID:", AMI)
+            elif chami == 1:
+                AMI = input("Enter the AMI id:")
+
+        elif choiceofami == 2:
+            ami_dict_ohio = {1: "ubuntu linux cis 20.04"}
+            a_o = {1: "ami-088b0a237ee1f2190"}
+            ami_dict_mumbai = {1: "Grafana-restore-instance", 2: "Grafana-11-03-2022",
+                               3: "Openvpn-restore-instance"}
+            a_m = {1: "ami-00ef765abde4efcfd", 2: "ami-08a5b2a4a24973d20", 3: "ami-0c2b564a84d319dc1"}
+            ami_dict_nvi = {1: "mad-test-1"}
+            a_n = {1: "ami-076847a41183343c8"}
+            ami_dict_sing = {1: "test-sk-backup"}
+            a_s = {1: "ami-0635e0b48f8771d8b"}
+            ami_dict_london = {1: "image1"}
+            a_l = {1: "ami-097cd522a8aa4c63f"}
+
+            yu = {}
+            print("List of AMI's in this region:")
+            for eir in range(1, 100):
+                try:
+                    if k == 2:
+                        print(eir, ":", ami_dict_ohio[eir])
+                        yu[eir] = ami_dict_ohio[eir]
+                    elif k == 8:
+                        print(eir, ":", ami_dict_mumbai[eir])
+                        yu[eir] = ami_dict_ohio[eir]
+                    elif k == 1:
+                        print(eir, ":", ami_dict_nvi[eir])
+                        yu[eir] = ami_dict_ohio[eir]
+                    elif k == 11:
+                        print(eir, ":", ami_dict_sing[eir])
+                        yu[eir] = ami_dict_ohio[eir]
+                    elif k == 17:
+                        print(eir, ":", ami_dict_london[eir])
+                        yu[eir] = ami_dict_ohio[eir]
+                except KeyError:
+                    break
+            amichoice = int(input("Press the appropriate number to continue:"))
+            if k == 2:
+                AMI = a_o[amichoice]
+            elif k == 8:
+                AMI = a_m[amichoice]
+            elif k == 1:
+                AMI = a_n[amichoice]
+            elif k == 11:
+                AMI = a_s[amichoice]
+            elif k == 17:
+                AMI = a_l[amichoice]
+
+            print("AMI selected:", AMI)
+
+
+        vpc_all = b.describe_vpcs()
+        print(vpc_all)
+        for cardib in range(1, 100):
+            fr = {}
+            try:
+                for vpC in vpc_all['Vpcs']:
+                    fr[vpC["VpcId"]] = vpC["Tags"][0]["Value"]
+
+            except IndexError:
+                break
+        fr_keys_list = list(fr.keys())
+        fr_values_list = list(fr.values())
+        print()
+        fr1 = {}
+        tr = 1
+        print("The list of VPC present in this region:")
+        for fr_1 in fr.keys():
+            fr1[tr] = fr[fr_1]
+            print(tr, ":", fr[fr_1])
+            tr += 1
+        kr1 = input("Enter the name of the Vpc:")
+        ttvar = fr_values_list.index(kr1)
+        print("Selected VPC:", fr_keys_list[ttvar])
+        selectvpc = fr_keys_list[ttvar]
+
+        sn_all = b.describe_subnets()
+        for ou in range(1, 100):
+            f = {}
+            try:
+                for sn in sn_all['Subnets']:
+                    if sn["VpcId"] == selectvpc:
+                        f[sn["SubnetId"]] = sn['Tags'][0]["Value"]
+            except IndexError:
+                break
+        f_key_list = list(f.keys())
+        f_value_list = list(f.values())
+        f1 = {}
+        t = 1
+        print("These are the list of subnet present:")
+        for fi in f.keys():
+            f1[t] = f[fi]
+            print(t, ":", f[fi])
+            t += 1
+        ki = input("Enter the subnet name to continue:")
+        tvar = f_value_list.index(ki)
+        SSSS = f_key_list[tvar]
+        print("The selected Subnet is:", SSSS)
+        termination_d=int(input("Delete on Termination\n1.Enable\n2.Disable"))
+        if termination_d==1:
+            t_d=True
+        elif termination_d==2:
+            t_d=False
+        else:
+            print("Invalid choice")
+        stop_ini = int(input("InstanceInitiatedShutdownBehavior\n1.stop\n2.terminate"))
+        if stop_ini == 1:
+            s_i_ = "stop"
+        elif stop_ini == 2:
+            s_i_ = "terminate"
+        else:
+            print("Invalid choice")
+        v_s=int(input("Enter the Volume size that you want to attach to this instance:"))
+        v_t=input("Enter the Volume Type:\nStandard Choices:io1,io2,gp2,sc1,st1,gp3")
+
+        op_c_inst=b.run_instances(BlockDeviceMappings=[
+        {'DeviceName': '/dev/sda1',
+            'Ebs': {
+                'DeleteOnTermination': t_d,
+                'VolumeSize': v_s,
+                'VolumeType': v_t,
+            }
+        }
+    ],
+            ImageId=AMI,
+            MinCount=1,
+            MaxCount=1,
+            InstanceType="t2.micro",
+            InstanceInitiatedShutdownBehavior=s_i_,
+            IamInstanceProfile={"Name": "SSM-Role"},
+            NetworkInterfaces=[{'AssociatePublicIpAddress': True, 'DeleteOnTermination':t_d,'DeviceIndex': 0, "SubnetId": SSSS}])
+        print(op_c_inst)
+        op_c_inst_name = input("Enter the name of the instance:")
+        b.create_tags(Resources=[op_c_inst["Instances"][0]["InstanceId"]], Tags=[{"Key": "Name", "Value": op_c_inst_name}])
+        respo= b.start_instances(
+            InstanceIds=[
+                op_c_inst["Instances"][0]["InstanceId"]])
+        print(respo)
+        print("Instance created!.")
+        """
+        cp = b.describe_addresses()
+        print("Available Elastic Ip:")
+        uol=1
+        tyh={}
+        for id_A in cp["Addresses"]:
+            k_q = id_A.keys()
+            if "AssociationId" not in k_q:
+                tyh[uol]= id_A["PublicIp"]
+                uol+=1
+        for tyuq in tyh:
+            print(tyuq,":",tyh[tyuq])
+        ts=int(input("Press the appropriate number to continue:\n1.Associate with already created Public IP Address\2.Create a new IP:"))
+        if ts==1:
+            press=int(input("Press the number:"))
+            Allocation_id_=tyh[press]
+            print("Please wait until a ElasticIp is associated with this Instance")
+            time.sleep(60)
+            b.associate_address(AllocationId=Allocation_id_, InstanceId=op_c_inst["Instances"][0]["InstanceId"])
+        elif ts==2:
+            kk = b.allocate_address(Domain="vpc")
+            Allocation_id_ = kk["AllocationId"]
+            print("Please wait until a ElasticIp is associated with this Instance")
+            time.sleep(60)
+            b.associate_address(AllocationId=Allocation_id_, InstanceId=op_c_inst["Instances"][0]["InstanceId"])
+        """
+
+    def Ebs_volume():
+        print("These are the availability zones present in this region")
+        response = client.describe_availability_zones()
+        iiu = {}
+        for ii in range(100):
+            try:
+                print(ii + 1, ":", response["AvailabilityZones"][ii]["ZoneName"])
+                iiu[ii + 1] = response["AvailabilityZones"][ii]["ZoneName"]
+            except IndexError:
+                break
+        rru = int(input(
+            "WARNING:create the volume in the same availability zone as the instance\nPress the appropriate number to continue:"))
+        az = iiu[rru]
+
+        v_ss = int(input("Enter the Volume size:"))
+        v_st = input("Enter the Volume type:")
+
+        new_volume = b.create_volume(
+            AvailabilityZone=az,
+            Size=v_ss,
+            VolumeType=v_st,
+            TagSpecifications=[
+                {
+                    'ResourceType': 'volume',
+                    'Tags': [
+                        {
+                            'Key': 'Name',
+                            'Value': 'hands-on-cloud-ebs-boto3'
+                        }
+                    ]
+                }
+            ]
+        )
+        d_instances = b.describe_instances()
+        print("LIST OF INSTANCES:")
+        qf = []
+        for rrp in d_instances["Reservations"]:
+            eli = 0
+            try:
+                print(rrp["Instances"][eli]["InstanceId"])
+                qf.append(rrp["Instances"][eli]["InstanceId"])
+                eli += 1
+            except IndexError:
+                break
+        bk = 1
+        for e in qf:
+            print(bk, ":", e)
+            bk += 1
+
+        qfk = int(input("Enter the appropriate number to continue:"))
+        I_i = qf[qfk - 1]
+
+        v_i = new_volume["VolumeId"]
+        client.attach_volume(
+            Device="/dev/sda1",
+            InstanceId=I_i,
+            VolumeId=v_i,
+        )
+
+    EC2choice = int(input(
+        "1.Create a network and create a new instance\n2.create an instance with existing network\n3.Terminate a instance\n4.stop a instance\n5.create Ebs volume and attach to existing instancePress the appropriate number to continue"))
+    if EC2choice==1:
+        create_new_instance()
+    elif EC2choice == 2:
+        create_instance()
+    elif EC2choice == 4:
+        stop_inst()
+    elif EC2choice == 3:
+        del_inst()
+    elif EC2choice==5:
+        Ebs_volume()
+    else:
+        print("Invalid choice")
