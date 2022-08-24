@@ -1,0 +1,25 @@
+gs=boto3.client("s3")
+    def create_bucket():
+        b_name = input("Enter the name of the Bucket:")
+        ac = {'LocationConstraint': rn}
+        bb=gs.create_bucket(Bucket=b_name, CreateBucketConfiguration=ac)
+        print(bb)
+        print("Bucket created!")
+
+
+    def upload_pic(fn, bt):
+        k_n = input("Enter the name of the file to be uploaded:")
+        gs.upload_file(fn, bt, Key=k_n)
+    def download_pic():
+        ab = gs.Bucket("samplerunbuckets3")
+        with open(r"C:\\Users\Sneha B\OneDrive\Desktop\\", "wb") as d:
+            a.download_file("bts3.jpg", d)
+    download_pic()
+
+    S3choice=int(input("1.Create a bucket\n2.Upload a file into the bucket\n3.Download a file from a Bucket"))
+    if S3choice==1:
+        create_bucket()
+    elif S3choice==2:
+        fn_=input("Enter the path of the file to be uploaded onto the bucket:")
+        B_name = input("Enter the name of the bucket into which the photo is to be uploaded:")
+        upload_pic(fn_,B_name)
