@@ -1,13 +1,27 @@
-    def create_virtual_mfa():
-        us = boto3.client("iam")
-        totp = pyotp.TOTP()
-        code_1 = totp.generate_otp(totp.timecode(datetime.datetime.now() - datetime.timedelta(seconds=30)))
-        code_2 = totp.generate_otp(totp.timecode(datetime.datetime.now()))
+    us = boto3.client("iam")
+    cvmfa = us.create_virtual_mfa_device(
+        VirtualMFADeviceName='test-test-1'
+    )
+    print(cvmfa)
 
-        vmfa = us.enable_mfa_device(
-            UserName='test_sneha',
-            SerialNumber='arn:aws:iam::483285932550:user/test_sneha',
-            AuthenticationCode1=code_1,
-            AuthenticationCode2=code_2
-        )
-        print(vmfa)
+    string_seed = cvmfa['VirtualMFADevice']['Base32StringSeed']
+
+    qrbytes = cvmfa['VirtualMFADevice']['QRCodePNG']
+    sn_ga = cvmfa["VirtualMFADevice"]["SerialNumber"]
+    with open('test-user.png', mode='wb') as f:
+        f.write(qrbytes)
+        f.close()
+    with open('qr1.png', 'wb') as qr_file:
+        qr_file.write(qrbytes)
+    webbrowser.open(qr_file.name)
+    totp = pyotp.TOTP("base32secret3232")
+    code_1 = input("Enter code1 :")
+    code_2 = input("Enter code2 :")
+
+    vmfa = us.enable_mfa_device(
+        UserName='sneha',
+        SerialNumber=sn_ga,
+        AuthenticationCode1=code_2,
+        AuthenticationCode2=code_1
+    )
+    print(vmfa)
