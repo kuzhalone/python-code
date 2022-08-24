@@ -1,0 +1,49 @@
+    def configservices():
+        why=boto3.client("config",region_name=rn)
+        """
+        ui =why.put_configuration_recorder(
+    ConfigurationRecorder={
+        'name': 'AWSServiceRoleForConfig',
+        'roleARN': 'arn:aws:iam::483285932550:role/aws-service-role/config.amazonaws.com/AWSServiceRoleForConfig',
+        'recordingGroup':{
+            'allSupported': True,
+            'includeGlobalResourceTypes': True,
+        }
+    }
+)
+        print(ui)
+        """
+        ri=int(input("DELIVERY METHODS\n1.Use existing buckets\n2.Create a new bucket"))
+        if ri==1:
+            gs = boto3.client("s3", region_name=rn)
+            iek = gs.list_buckets()
+            bl_dict = {}
+            print("LIST OF EXISTING BUCKETS:")
+            for uiek in range(1000):
+                try:
+
+                    print(uiek + 1, ":", iek["Buckets"][uiek]["Name"])
+                    bl_dict[uiek + 1] = iek["Buckets"][uiek]["Name"]
+                except IndexError:
+                    break
+            tichoice = int(input("Press the appropriate number to continue:"))
+
+            dc = why.put_delivery_channel(
+                DeliveryChannel={
+                    'name': 'sampletest',
+                    's3BucketName': bl_dict[tichoice],
+                    'snsTopicARN':tp_ ,
+                    's3KmsKeyArn': "arn:aws:s3:::samplerunbuckets3",
+                    'configSnapshotDeliveryProperties': {
+                        'deliveryFrequency': 'One_Hour'
+                    }
+                }
+            )
+            print(dc)
+        elif ri==2:
+            b_name = input("Enter the name of the Bucket:")
+            ac = {'LocationConstraint': rn}
+            bb = gs.create_bucket(Bucket=b_name, CreateBucketConfiguration=ac)
+            print(bb)
+            print("Bucket created!")
+    configservices()
